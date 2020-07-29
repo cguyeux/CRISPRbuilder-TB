@@ -43,16 +43,12 @@ pip3 install -r requirements.txt
 
 ## How to use TB-tools
 
-You need first the reads of a given Sequence Read Archive (SRA) accession number,
-e.g., by downloading them with fastq-dump:
-<pre>
-fastq-dump --fasta --split-files SRR1173284
-</pre>
-
 To launch a first analysis: 
 <pre>
-python crisprbuilder.py SRR1173284
+python crisprbuilder.py -sra SRR1173284
 </pre>
+(by default, SRAs are looked for in the *sequences* directory.)
+
 Help about this script: 
 <pre>
 python crisprbuilder.py -h

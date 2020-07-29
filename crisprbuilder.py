@@ -1,8 +1,10 @@
+import argparse
 import Bio.SeqIO
 import collections
 import copy
 import logging
 import networkx as nx
+import os
 import pathlib
 import pydot
 import sys
@@ -14,26 +16,77 @@ from tools import check_for_tools, prepare_sra, seq_info
 
 
 class CRISPRbuilder:
-    def __init__(self, sra="", out_dir="sequences", loglevel=logging.INFO,
-                 graph_method=False,
-                 evalue='1e-7', taille_tuple=3, nb_threads=12):
-        logging.basicConfig(level=loglevel)
+    def __init__(self):
+        logging.basicConfig(level=logging.DEBUG)
         self._logger = logging.getLogger()
         self._logger.info('Initialization')
         self._dir_data = pathlib.Path() / 'data'
-        self._outdir = out_dir
-        self._sra = pathlib.Path(out_dir) / sra
+        self._parse_args()
         p = pathlib.Path(self._sra)
         p.mkdir(exist_ok=True, parents=True)
-        self._num_threads = str(nb_threads)
-        self._graph_method = graph_method
-        self._evalue = evalue
-        self._taille_tuple = taille_tuple
-        _, self._makeblastdb, self._blastn = check_for_tools()
+        self._fastq_dump, self._makeblastdb, self._blastn = check_for_tools()
+        self._logger.info(f'Downloading {self._sra.name} reads')
+        if not os.path.isfile(self._sra):
+            sp.run([self._fastq_dump,
+                    '--split-files',
+                    '--fasta',
+                    '-O', self._sra,
+                    self._sra.name
+                    ])
         self._logger.info(f'Preparing {self._sra.name} sequences')
         self._sra_shuffled = prepare_sra(self._sra)
         self._coverage, self._len_reads, self._nb_reads = seq_info(self._sra)
         self._make_blast_db()
+
+    def __str2bool(self, v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
+    def _parse_args(self):
+        """
+        Parses the arguments provided to the CRISPRbuilder-TB
+        """
+        parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument("-sra",
+                            help="accession number to deal with",
+                            default='',
+                            type=str)
+        parser.add_argument("-out",
+                            "--output_directory",
+                            default='sequences',
+                            help="directory of outputs",
+                            type=str)
+        parser.add_argument("-num_threads",
+                            default='1',
+                            help="number of threads",
+                            type=str)
+        parser.add_argument("-evalue",
+                            default='1e-7',
+                            help="evalue when blasting spacers, DRs, etc.",
+                            type=str)
+        parser.add_argument("-graph_method",
+                            type=self.__str2bool,
+                            nargs = '?',
+                            default=False,
+                            const=True,
+                            help="use the experimental graph method")
+        parser.add_argument("-size_tuple",
+                            default=3,
+                            help="tuple size in graph method",
+                            type=int)
+        args = parser.parse_args()
+        self._outdir = pathlib.Path(args.output_directory)
+        self._sra = pathlib.Path(self._outdir) / args.sra
+        self._evalue = args.evalue
+        self._num_threads = args.num_threads
+        self._graph_method = args.graph_method
+        self._taille_tuple = args.size_tuple
 
     def _make_blast_db(self):
         completed = sp.run([self._makeblastdb,
@@ -42,7 +95,6 @@ class CRISPRbuilder:
                             '-title', self._sra.name,
                             '-out', self._sra / self._sra.name])
         assert completed.returncode == 0
-
 
     def parse(self):
         self._sequences_of_interest()
@@ -255,5 +307,5 @@ class CRISPRbuilder:
                 S.append(s.split('*')[1:-1])
 
 if __name__ == '__main__':
-    cb = CRISPRbuilder(sra = sys.argv[-1])
+    cb = CRISPRbuilder()
     cb.parse()
