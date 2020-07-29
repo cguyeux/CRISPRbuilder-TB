@@ -67,6 +67,7 @@ lines are needed to reconstruct the CRISPR locus.
 
 ## Deeper explanations
 
+Here are the first contigs produced in the cas of a BCG strain:
 <pre>
 ('TTGCACGTATCGACCGCTTCGCCATCGACTGCGACAACATCCGGATCTATAAGATAAGAGGTGTTGCGGCAGTTACGTTCTACGGAAGGGGACG*Rv2816c*starting_pattern1*DR0*esp1*DR0*esp2*DR0*esp3*DR0*esp5*DR0*esp6*DR0*esp7*DR0*esp8*DR0*esp11*DR0*esp12*DR0*esp13*DR0*esp14*DR0*esp15*DR0*esp16*DR0*esp17*DR0*esp18*DR0*esp20*DR0*esp21*DR0*esp22*DR0*esp23*DR0*esp24*DR0*esp25*DRb2*esp27*DR0*esp28*DR0*esp29*DR0*esp30*DR2*esp31*DR0*esp32*DR0*esp33*DR0*esp34*rDRa1*IS6110*GGTCATGTCAGGTGGTTCATCGAGGAGGTACCCGCCGGAGCTGCGTGAGCGGGCGGTGCGGATGGTCGCAGAGATCCGCGGTCAGCACGATTCGGAGT', 42964)
 ('CGCCGCCTCTACCAGTACTGCGGCGACGTCCCGCCGGTCGAACTCGAGGCTGCCTACTACGCTCAACGCCAGAGACCAGCCGCCGGCTGAGGTCTC*finIS6110*DRb1*esp35*DR0*esp36*DR0*esp37*DR0*esp38*DR0*esp39*DR0*esp40*DR0*esp41*DR0*esp35*DR0*esp42*DR0*esp43*DR0*', 14706)
@@ -78,7 +79,17 @@ lines are needed to reconstruct the CRISPR locus.
 ('AAC*esp37*DR15*esp47*GTCGT', 48)
 ('DR0[30:]*esp5*DR0*esp48*DR0[:6]', 42)
 ('esp46[20:]*DR0*esp34*rDRa1*IS6110[:22]', 38)
+...
 </pre>
+- We can see a gap in scores (the right component of the couples) after the 6 
+first lines, meaning that what follows can be forgotten;
+- the first contig is the beginning of the locus, until the ancestral IS6110;
+- the second one corresponds to the locus part after this IS, starting with
+spacer 35, until spacer 43;
+- we can find the part from 43 to 48 in the fourth contig, and the part from 
+spacers 48 to 52, and then the ending pattern, in the third contig; 
+- the ruptures at position 43 and 48 are explained by the lines 5 and 6: they
+are due to a tandem duplication of each of these spacers.
 
 
 ## Citation
