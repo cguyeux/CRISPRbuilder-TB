@@ -67,13 +67,6 @@ def prepare_sra(sra):
             # TODO: In windows, only the first sra is considered
             # TODO: log the process
             sra_shuffled = sra
-    else:
-        files = [k for k in sra.iterdir()
-                 if k.name.startswith(sra.name)
-                 and k.suffix == '.fasta'
-                 and 'shuffled' not in k.stem]
-        for fic in files:
-            os.remove(fic)
     return sra_shuffled
 
 def h37Rv():

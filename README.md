@@ -58,8 +58,11 @@ python crisprbuilder.py -h
 </pre>
 
 
-## Results interpretation
+## Produced results
 
+- A file with ".contig" is written in the SRA directory, which contains all 
+obtained contigs ordered by scores. In the best case scenario, only the 2-3 first
+lines are needed to reconstruct the CRISPR locus.
 
 
 ## Citation
