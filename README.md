@@ -47,12 +47,20 @@ To launch a first analysis:
 <pre>
 python crisprbuilder.py -sra SRR1173284
 </pre>
-(by default, SRAs are looked for in the *sequences* directory.)
+
+- By default, SRAs are looked for in the *sequences* directory.
+- If this directory does not contain a subdirectory of this name, read files are
+then downloaded by using fastq-dump.
 
 Help about this script: 
 <pre>
 python crisprbuilder.py -h
 </pre>
+
+
+## Results interpretation
+
+
 
 ## Citation
 

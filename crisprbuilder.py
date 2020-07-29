@@ -22,11 +22,13 @@ class CRISPRbuilder:
         self._logger.info('Initialization')
         self._dir_data = pathlib.Path() / 'data'
         self._parse_args()
-        p = pathlib.Path(self._sra)
-        p.mkdir(exist_ok=True, parents=True)
         self._fastq_dump, self._makeblastdb, self._blastn = check_for_tools()
-        self._logger.info(f'Downloading {self._sra.name} reads')
-        if not os.path.isfile(self._sra):
+        p = pathlib.Path(self._outdir)
+        p.mkdir(exist_ok=True, parents=True)
+        if self._sra.name not in [u.name for u in self._outdir.iterdir()]:
+            self._logger.info(f'Downloading {self._sra.name} reads')
+            p = pathlib.Path(self._sra)
+            p.mkdir(exist_ok=True, parents=True)
             sp.run([self._fastq_dump,
                     '--split-files',
                     '--fasta',
@@ -82,7 +84,7 @@ class CRISPRbuilder:
                             type=int)
         args = parser.parse_args()
         self._outdir = pathlib.Path(args.output_directory)
-        self._sra = pathlib.Path(self._outdir) / args.sra
+        self._sra = self._outdir / args.sra
         self._evalue = args.evalue
         self._num_threads = args.num_threads
         self._graph_method = args.graph_method
@@ -174,8 +176,9 @@ class CRISPRbuilder:
             u = u.replace('DR0[13:]', 'DRb2').replace('DR0[17:]', 'DRb1').replace('DR0[:19]', 'rDRa1').replace(
                 'AACCGAGAGGGGACGGAAAC', 'DRb(1)')
             total.append((u, nb_reads))
-        for k in sorted([u for u in total if u[1] > 1], key=lambda x: x[0].count('*'), reverse=True):
-            print(k)
+        with open(self._sra / (self._sra.name + '.contig'), 'w') as f:
+            for k in sorted([u for u in total if u[1] > 1], key=lambda x: x[0].count('*'), reverse=True):
+                f.write(str(k)+os.linesep)
 
     def _sequences_of_interest(self):
         completed = sp.run([self._blastn,
