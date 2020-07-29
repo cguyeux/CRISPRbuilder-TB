@@ -6,6 +6,22 @@ import subprocess as sp
 import sys
 from xlrd import open_workbook
 
+def rev_comp(s):
+    u=[change(x) for x in s]
+    u.reverse()
+    return ''.join(u)
+
+def change(x):
+    if x == 'A':
+        return 'T'
+    elif x == 'T':
+        return 'A'
+    elif x == 'C':
+        return 'G'
+    elif x == 'G':
+        return 'C'
+    return x
+
 
 def check_for_tools():
     for name in ['blastn', 'fastq-dump', 'makeblastdb']:

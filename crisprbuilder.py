@@ -12,7 +12,7 @@ import subprocess as sp
 
 from networkx.drawing.nx_pydot import write_dot
 
-from tools import check_for_tools, prepare_sra, seq_info
+from tools import check_for_tools, prepare_sra, seq_info, rev_comp
 
 
 class CRISPRbuilder:
@@ -105,12 +105,13 @@ class CRISPRbuilder:
             print(self._get_contigs2())
         else:
             self._get_contigs1()
+        self._find_duplicates()
 
     def _get_contigs1(self):
         # TODO: Code cleaning
         kmers = int(4 * self._len_reads / 5)
-        print('Longueur des reads :', self._len_reads)
-        print('Longueur des k-mers :', kmers)
+        print('Read length:', self._len_reads)
+        print('k-mers length:', kmers)
         sequences = []
         for dd in self._SEQS:
             sequences.extend([dd[u:u + kmers] for u in range(len(dd) - kmers)])
@@ -204,7 +205,6 @@ class CRISPRbuilder:
                     self._SEQS.append(str(fasta.seq))
                 else:
                     self._SEQS.append(str(fasta.seq.reverse_complement()))
-        print(len(self._SEQS))
 
     def _get_chaine(self, G, node):
         chaine = node.split('*')[0]
@@ -233,6 +233,41 @@ class CRISPRbuilder:
                 cpt = 0
                 txt += '\n'
         return txt
+
+    def _find_duplicates(self):
+        couples = []
+        chevauche = 12
+        for k in self._SEQS:
+            for l in ['DR' + str(m) for m in range(0, 16)]:
+                if self._dicofind[l] in k:
+                    for i in range(k.count(self._dicofind[l])):
+                        u, v = k.split(self._dicofind[l])[i], k.split(self._dicofind[l])[i + 1]
+                        U, V = '', ''
+                        for m in self._dicofind:
+                            if u[-chevauche:] == self._dicofind[m][-chevauche:]:
+                                U = m
+                            if v[:chevauche] == self._dicofind[m][:chevauche]:
+                                V = m
+                        couples.append((U, V))
+            kk = rev_comp(k)
+            for l in ['DR' + str(m) for m in range(0, 16)]:
+                if self._dicofind[l] in kk:
+                    for i in range(kk.count(self._dicofind[l])):
+                        u, v = kk.split(self._dicofind[l])[i], kk.split(self._dicofind[l])[i + 1]
+                        U, V = '', ''
+                        for m in self._dicofind:
+                            if u[-chevauche:] == self._dicofind[m][-chevauche:]:
+                                U = m
+                            if v[:chevauche] == self._dicofind[m][:chevauche]:
+                                V = m
+                        couples.append((U, V))
+        limite = 3
+        for k in sorted([(u, couples.count(u)) for u in list(set(couples)) if
+                         couples.count(u) >= limite and '' not in u and 'pattern' not in ''.join(u)],
+                        key=lambda x: eval(x[0][0].replace('esp', '').split('(')[0])):
+            if eval(k[0][1].replace('esp', '').replace('rev(', '').split('(')[0].split(')')[0]) != eval(
+                    k[0][0].replace('esp', '').replace('rev(', '').split('(')[0].split(')')[0]) + 1:
+                print(k)
 
     def _get_contigs2(self, sensibility=20):
         liste = [u for u in [[k[l:l + self._taille_tuple]

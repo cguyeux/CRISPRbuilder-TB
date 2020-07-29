@@ -23,7 +23,7 @@ for too short or polluted reads.
 [fastq-dump](https://github.com/ncbi/sra-tools) from sra-tools (NCBI) can be used too, to collect new WGS fasta files.
 
 A 'bin' directory has been added to the project with the 3 required executables, 
-and for the GNU/Linux, Mac and Windows platforms, but the preferred method is
+and for the GNU/Linux, Mac and Windows platforms. But the preferred method is
 a clean installation from the source.
 
 
