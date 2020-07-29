@@ -91,6 +91,24 @@ spacers 48 to 52, and then the ending pattern, in the third contig;
 - the ruptures at position 43 and 48 are explained by the lines 5 and 6: they
 are due to a tandem duplication of each of these spacers.
 
+The reconstructed locus is then: *Rv2816c*starting_pattern1*DR0*esp1*DR0*esp2*DR0*esp3*DR0*esp5*DR0*esp6*DR0*esp7*DR0*esp8*DR0*esp11*DR0*esp12*DR0*esp13*DR0*esp14*DR0*esp15*DR0*esp16*DR0*esp17*DR0*esp18*DR0*esp20*DR0*esp21*DR0*esp22*DR0*esp23*DR0*esp24*DR0*esp25*DRb2*esp27*DR0*esp28*DR0*esp29*DR0*esp30*DR2*esp31*DR0*esp32*DR0*esp33*DR0*esp34*rDRa1*IS6110*DRb1*esp35*DR0*esp36*DR0*esp37*DR0*esp38*DR0*esp39*DR0*esp40*DR0*esp41*DR0*esp35*DR0*esp42*DR0*esp43*DR0*esp43*DR0*esp44*DR0*esp46*DR15*esp47*DR0*esp48*DR0*esp48*DR0*esp50*DR0*esp51*DR0*esp52*DR0*ending_pattern*Rv2813c*
+
+and we can recover its spoligotype and SIT number as follows:
+<pre>
+In [1]: from tools import *
+In [2]: str_to_spol('*Rv2816c*starting_pattern1*DR0*esp1*DR0*esp2*DR0*esp3*DR0*esp5*DR0*esp6*DR0*esp7*DR0*esp8*DR0*esp1
+   ...: 1*DR0*esp12*DR0*esp13*DR0*esp14*DR0*esp15*DR0*esp16*DR0*esp17*DR0*esp18*DR0*esp20*DR0*esp21*DR0*esp22*DR0*esp23
+   ...: *DR0*esp24*DR0*esp25*DRb2*esp27*DR0*esp28*DR0*esp29*DR0*esp30*DR2*esp31*DR0*esp32*DR0*esp33*DR0*esp34*rDRa1*IS6
+   ...: 110*DRb1*esp35*DR0*esp36*DR0*esp37*DR0*esp38*DR0*esp39*DR0*esp40*DR0*esp41*DR0*esp35*DR0*esp42*DR0*esp43*DR0*es
+   ...: p43*DR0*esp44*DR0*esp46*DR15*esp47*DR0*esp48*DR0*esp48*DR0*esp50*DR0*esp51*DR0*esp52*DR0*ending_pattern*Rv2813c
+   ...: *')
+[1, 2, 3, 5, 6, 7, 8, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 50, 51, 52]
+■■□■■■■■□■■■■■■□■■■■■■■■■■■■■■■■■■■■■■□□□□□
+■■■□■■■■□□■■■■■■■■□■■■■■■□■■■■■■■■■■■■■■■■■■□■■■□■■■□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□
+SIT : 482
+
+In [3]:
+</pre>
 
 ## Citation
 
