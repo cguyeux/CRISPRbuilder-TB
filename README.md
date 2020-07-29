@@ -18,7 +18,7 @@ for too short or polluted reads.
 ## Requirements
 
 **CRISPRbuilder-TB** needs Python 3, and the following dependencies to work:
-*blastn* and *makeblastdb* from blast+ (NCBI) : https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download
+*blastn* and *makeblastdb* from [blast+](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) NCBI package.
 
 [fastq-dump](https://github.com/ncbi/sra-tools) from sra-tools (NCBI) can be used too, to collect new WGS fasta files.
 
@@ -43,24 +43,19 @@ pip3 install -r requirements.txt
 
 ## How to use TB-tools
 
-
+You need first the reads of a given Sequence Read Archive (SRA) accession number,
+e.g., by downloading them with fastq-dump:
+<pre>
+fastq-dump --fasta --split-files SRR1173284
+</pre>
 
 To launch a first analysis: 
 <pre>
-python crisprbuilder.py ERR037527
+python crisprbuilder.py SRR1173284
 </pre>
 Help about this script: 
 <pre>
-python tbannotator.py -h
-</pre>
-By default, only basic information (e.g., Coll et al. lineage) is printed in
-the terminal (to save execution time), and results are stored in a pickled 
-python dictionary in the 'sequence' directory. To read such a data using 
-Python:
-<pre>
-from pickle import load
-with open('sequences/ERR037527/ERR037527.pkl', 'rb') as f:
-    dico = load(f.read())
+python crisprbuilder.py -h
 </pre>
 
 ## Citation
