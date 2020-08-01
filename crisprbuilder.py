@@ -1,5 +1,6 @@
 import argparse
 import Bio.SeqIO
+import Bio.pairwise2
 import collections
 import copy
 import logging
@@ -20,7 +21,7 @@ class CRISPRbuilder:
         logging.basicConfig(level=logging.DEBUG)
         self._logger = logging.getLogger()
         self._logger.info('Initialization')
-        self._dir_data = pathlib.Path() / 'data'
+        self._dir = pathlib.Path() / 'data'
         self._parse_args()
         self._fastq_dump, self._makeblastdb, self._blastn = check_for_tools()
         p = pathlib.Path(self._outdir)
@@ -73,23 +74,16 @@ class CRISPRbuilder:
                             default='1e-7',
                             help="evalue when blasting spacers, DRs, etc.",
                             type=str)
-        parser.add_argument("-graph_method",
-                            type=self.__str2bool,
-                            nargs = '?',
-                            default=False,
-                            const=True,
-                            help="use the experimental graph method")
-        parser.add_argument("-size_tuple",
-                            default=3,
-                            help="tuple size in graph method",
+        parser.add_argument("-overlap",
+                            default=12,
+                            help="spacer nucleotides required when looking reads with two pieces of spacers",
                             type=int)
         args = parser.parse_args()
         self._outdir = pathlib.Path(args.output_directory)
         self._sra = self._outdir / args.sra
         self._evalue = args.evalue
         self._num_threads = args.num_threads
-        self._graph_method = args.graph_method
-        self._taille_tuple = args.size_tuple
+        self._overlap = args.overlap
 
     def _make_blast_db(self):
         completed = sp.run([self._makeblastdb,
@@ -100,16 +94,20 @@ class CRISPRbuilder:
         assert completed.returncode == 0
 
     def parse(self):
+        print("Investigations started...")
         self._sequences_of_interest()
-        self._get_matches()
-        if self._graph_method:
-            print(self._get_contigs2())
-        else:
-            self._get_contigs1()
+        self._get_contigs()
         self._find_duplicates()
+        self._cas_investigation()
+        self._find_IS_around()
 
-    def _get_contigs1(self):
+    def _get_contigs(self):
         # TODO: Code cleaning
+        self._dicofind = {}
+        with open(pathlib.Path('data') / 'fastas' / 'crispr_patterns.fasta') as f:
+            txt = f.read()
+        for k in txt.split('>')[1:]:
+            self._dicofind[k.split('\n')[0]] = k.split('\n')[1]
         kmers = int(4 * self._len_reads / 5)
         print('Read length:', self._len_reads)
         print('k-mers length:', kmers)
@@ -119,34 +117,33 @@ class CRISPRbuilder:
         total = []
         SEQUENCES = []
         while len(sequences) > 0:
-            cible = sequences.pop(0)
-            nb_reads = 1 + sequences.count(cible)
-            sequences = list(filter(lambda a: a != cible, sequences))
+            target = sequences.pop(0)
+            nb_reads = 1 + sequences.count(target)
+            sequences = list(filter(lambda a: a != target, sequences))
             avance = True
             while avance:
-                prochain = [k for k in sequences if k[:-1] == cible[-len(k) + 1:]]
+                prochain = [k for k in sequences if k[:-1] == target[-len(k) + 1:]]
                 U = [[u[-1] for u in prochain].count(v) for v in 'ACGT']
                 avance = ((sorted(U)[-1] >= 2 * sorted(U)[-2]) and (sorted(U)[-1] > 1))
                 if avance:
                     nb_reads += sorted(U)[-1]
-                    cible += 'ACGT'[U.index(max(U))]
+                    target += 'ACGT'[U.index(max(U))]
                     for k in prochain:
                         sequences.remove(k)
             recule = True
             while recule:
-                prochain = [k for k in sequences if k[1:] == cible[:len(k) - 1]]
+                prochain = [k for k in sequences if k[1:] == target[:len(k) - 1]]
                 U = [[u[0] for u in prochain].count(v) for v in 'ACGT']
                 recule = ((sorted(U)[-1] >= 2 * sorted(U)[-2]) and (sorted(U)[-1] > 1))
                 if recule:
                     nb_reads += sorted(U)[-1]
-                    cible = 'ACGT'[U.index(max(U))] + cible
+                    target = 'ACGT'[U.index(max(U))] + target
                     for k in prochain:
                         sequences.remove(k)
-            SEQUENCES.append(cible)
-            u = copy.deepcopy(cible)
+            SEQUENCES.append(target)
+            u = copy.deepcopy(target)
             for k in self._dicofind:
                 u = u.replace(self._dicofind[k], '*' + k + '*')
-            # u = u.replace('GTCGTCAGACCCAAAACCC', 'rDRa1').replace('AAAACCCCGAGAGGGGACGGAAAC', 'DRb2').replace('CCCCGAGAGGGGACGGAAAC','DRb1')
             u = u.replace('**', '*')
             v = []
             for k in u.split('*'):
@@ -178,7 +175,9 @@ class CRISPRbuilder:
             u = u.replace('DR0[13:]', 'DRb2').replace('DR0[17:]', 'DRb1').replace('DR0[:19]', 'rDRa1').replace(
                 'AACCGAGAGGGGACGGAAAC', 'DRb(1)')
             total.append((u, nb_reads))
-        with open(self._sra / (self._sra.name + '.contig'), 'w') as f:
+        filename = self._sra / (self._sra.name + '.contig')
+        print(f"Writing deduced contigs in {filename}")
+        with open(filename, 'w') as f:
             for k in sorted([u for u in total if u[1] > 1], key=lambda x: x[0].count('*'), reverse=True):
                 f.write(str(k)+os.linesep)
 
@@ -207,37 +206,8 @@ class CRISPRbuilder:
                 else:
                     self._SEQS.append(str(fasta.seq.reverse_complement()))
 
-    def _get_chaine(self, G, node):
-        chaine = node.split('*')[0]
-        successor = list(G.neighbors(node))
-        suite = ''
-        score = 0
-        while len(successor) == 1:
-            score += G[node][successor[0]]['weight']
-            chaine += '*' + successor[0].split('*')[0]
-            suite = '*'.join(successor[0].split('*')[1:])
-            node = successor[0]
-            successor = list(G.neighbors(successor[0]))
-        if suite != '':
-            chaine += '*' + suite
-        return (chaine, successor, score)
-
-    def _formate_contigs(self, chaine):
-        chaine = chaine.replace('AAAACCCCGAGAGGGGACGGAAAC', '*DRb2')
-        chaine = chaine.replace('motif_fin1*motif_fin2*motif_fin3', 'motif_fin')
-        chaine = chaine.replace('**', '*')
-        cpt, txt = 0, ''
-        for k in chaine.split('*'):
-            txt += k + '*'
-            cpt += len(k) + 1
-            if cpt > 75:
-                cpt = 0
-                txt += '\n'
-        return txt
-
     def _find_duplicates(self):
         couples = []
-        chevauche = 12
         for k in self._SEQS:
             for l in ['DR' + str(m) for m in range(0, 16)]:
                 if self._dicofind[l] in k:
@@ -245,9 +215,9 @@ class CRISPRbuilder:
                         u, v = k.split(self._dicofind[l])[i], k.split(self._dicofind[l])[i + 1]
                         U, V = '', ''
                         for m in self._dicofind:
-                            if u[-chevauche:] == self._dicofind[m][-chevauche:]:
+                            if u[-self._overlap:] == self._dicofind[m][-self._overlap:]:
                                 U = m
-                            if v[:chevauche] == self._dicofind[m][:chevauche]:
+                            if v[:self._overlap] == self._dicofind[m][:self._overlap]:
                                 V = m
                         couples.append((U, V))
             kk = rev_comp(k)
@@ -257,9 +227,9 @@ class CRISPRbuilder:
                         u, v = kk.split(self._dicofind[l])[i], kk.split(self._dicofind[l])[i + 1]
                         U, V = '', ''
                         for m in self._dicofind:
-                            if u[-chevauche:] == self._dicofind[m][-chevauche:]:
+                            if u[-self._overlap:] == self._dicofind[m][-self._overlap:]:
                                 U = m
-                            if v[:chevauche] == self._dicofind[m][:chevauche]:
+                            if v[:self._overlap] == self._dicofind[m][:self._overlap]:
                                 V = m
                         couples.append((U, V))
         limite = 3
@@ -271,7 +241,9 @@ class CRISPRbuilder:
             if eval(k[0][1].replace('esp', '').replace('rev(', '').split('(')[0].split(')')[0]) != eval(
                     k[0][0].replace('esp', '').replace('rev(', '').split('(')[0].split(')')[0]) + 1:
                 txt += f"{k[0][0].split('(')[0]}-{k[0][1].split('(')[0]}: {k[1]}" + os.linesep
-        with open(self._sra / (self._sra.name + '.not_consecutive'), 'w') as f:
+        filename = self._sra / (self._sra.name + '.not_consecutive')
+        print(f"Writing reads number with non-consecutive spacers in {filename}")
+        with open(filename, 'w') as f:
             f.write(txt)
         txt = ''
         for k in sorted([(u, couples.count(u)) for u in list(set(couples)) if
@@ -279,59 +251,10 @@ class CRISPRbuilder:
                          and 'IS' not in ''.join(u)],
                key=lambda x: eval(x[0][0].replace('esp', '').split('(')[0])):
             txt += f"{k[0][0].split('(')[0]}-{k[0][1].split('(')[0]}: {k[1]}" + os.linesep
-        with open(self._sra / (self._sra.name + '.reads_with_2_spacers'), 'w') as f:
+        filename = self._sra / (self._sra.name + '.reads_with_2_spacers')
+        print(f"Writing reads number with two spacers in {filename}")
+        with open(filename, 'w') as f:
             f.write(txt)
-
-    def _get_contigs2(self, sensibility=20):
-        liste = [u for u in [[k[l:l + self._taille_tuple]
-                              for l in range(len(k) - (self._taille_tuple - 1))]
-                             for k in S
-                             if len(k) >= self._taille_tuple - 1] if u != []]
-        triplets = [item for sublist in liste for item in sublist]
-
-        occurrences_minimales = 3
-        sommets = [item for sublist in triplets for item in sublist]
-        sommets = sorted(set([k for k in sommets if sommets.count(k) >= occurrences_minimales]))
-
-        self._triplets = [k for k in triplets if all([u in sommets for u in k])]
-        arcs = {}
-        for k in self._triplets:
-            for l in self._triplets:
-                if k[1:] == l[:self._taille_tuple - 1]:
-                    cle = '*'.join(k) + '+' + '*'.join(l)
-                    if cle not in arcs:
-                        arcs[cle] = 1
-                    else:
-                        arcs[cle] += 1
-        G = nx.DiGraph()
-        for arc in arcs:
-            k, l = arc.split('+')
-            if arcs[arc] >= sensibility:
-                G.add_edge(k, l, weight=arcs[arc])
-        write_dot(G, self._sra / (self._sra.name + '.dot'))
-        investigated = []
-        roots = collections.deque([k for k in G.nodes() if list(G.predecessors(k)) == []])
-        contigs = []
-        while len(roots) != 0:
-            node = roots.popleft()
-            investigated.append(node)
-            chaine, suite, score = self._get_chaine(G, node)
-            if suite != []:
-                roots.extend([u for u in suite if u not in investigated])
-                for k in suite:
-                    if chaine + k not in contigs:
-                        contigs.append((chaine + '*' + k, score))
-            else:
-                if chaine not in [u[0] for u in contigs]:
-                    contigs.append((chaine, score))
-        if len(contigs) == 2:
-            if contigs[0][0].endswith('IS6110') and contigs[1][0].startswith('finIS6110'):
-                txt = contigs[0][0] + contigs[1][0]
-                contigs = [(txt.replace('IS6110finIS6110', 'IS6110'), contigs[0][1] + contigs[1][1])]
-            elif contigs[1][0].endswith('IS6110') and contigs[0][0].startswith('finIS6110'):
-                txt = contigs[1][0] + contigs[0][0]
-                contigs = [(txt.replace('IS6110finIS6110', 'IS6110'), contigs[0][1] + contigs[1][1])]
-        return contigs
 
     def _get_matches(self):
         self._dicofind, self._dico_cas = {}, {}
@@ -339,11 +262,11 @@ class CRISPRbuilder:
             txt = f.read()
         for k in txt.split('>')[1:]:
             self._dicofind[k.split('\n')[0]] = k.split('\n')[1]
-        with open(pathlib.Path('data') / 'fastas' / 'cas_patterns.fasta') as f:
+        '''with open(pathlib.Path('data') / 'fastas' / 'cas_patterns.fasta') as f:
             txt = f.read()
         for k in txt.split('>')[1:]:
-            self._dico_cas[k.split('\n')[0]] = k.split('\n')[1]
-        S = []
+            self._dico_cas[k.split('\n')[0]] = k.split('\n')[1]'''
+        '''S = []
         for k in self._SEQS:
             s = copy.deepcopy(k)
             for l in self._dicofind:
@@ -355,7 +278,138 @@ class CRISPRbuilder:
             s = s.replace('*CCCCGAGAGGGGACGGAAAC*', '*DRb1*')
             s = s.replace('*AAAACCCCGAGAGGGGACGGAAAC*', '*DRb2*')
             if '*' in s:
-                S.append(s.split('*')[1:-1])
+                S.append(s.split('*')[1:-1])'''
+
+    def _cas_investigation(self):
+        self._dico_cas = {}
+        with open(pathlib.Path('data') / 'fastas' / 'cas_patterns.fasta') as f:
+            txt = f.read()
+        for k in txt.split('>')[1:]:
+            self._dico_cas[k.split('\n')[0]] = k.split('\n')[1]
+        completed = sp.run([self._blastn,
+                            '-num_threads', self._num_threads,
+                            '-query', pathlib.Path('data') / 'fastas' / 'cas_patterns.fasta',
+                            '-evalue', self._evalue,
+                            '-task', "blastn",
+                            '-db', self._sra / self._sra.name,
+                            '-outfmt', '10 qseqid sseqid sstart send sseq',
+                            '-out', self._sra / (self._sra.name + 'cas_patterns.blast')])
+        assert completed.returncode == 0
+        s = ''
+        with open(self._sra / (self._sra.name + 'cas_patterns.blast'), 'r') as f:
+            txt = f.read()
+            for u in self._dico_cas:
+                if txt.count(self._dico_cas[u]) > 0:
+                    s += u + '-'
+        s = s.replace('start_pattern-start_pattern', 'start_pattern')
+        s = s.replace('DR0-DR0', 'DR0')
+        for u in ['Cas6', 'Csm1', 'Csm2', 'Csm3', 'Csm4', 'Csm5', 'Csm6', 'Cas1', 'Cas2',
+                  'pattern', 'Rv2812c', 'Rv2811c', 'Rv2809c', 'Rv2808c', 'Rv2807c']:
+            for i in range(2, 8):
+                s = s.replace(u + '_start' + str(i), u + '_start')
+                s = s.replace(u + '_end' + str(i), u + '_end')
+            s = s.replace(u + '_start-' + u + '_start', u + '_start')
+            s = s.replace(u + '_end-' + u + '_end', u + '_end')
+            s = s.replace(u + '_start-' + u + '_end', u)
+
+        s = s.replace('end_pattern_start-end_pattern_middle-end_pattern_end', 'end_pattern')
+        s = s.rstrip('-')
+        s = s.replace('*DR0*esp1', '-CRISPR')
+        filename = self._sra / (self._sra.name + '.cas_locus')
+        print(f"Writing CAS locus in {filename}")
+        with open(filename, 'w') as f:
+            f.write(s)
+        s = ''
+        for u in self._dico_cas:
+            if 'IS' in u:
+                s += f"{txt.count(self._dico_cas[u])} {u}"
+            else:
+                s += f"  {txt.count(self._dico_cas[u])} {u}"
+            s += os.linesep
+        filename = self._sra / (self._sra.name + '.cas_reads')
+        print(f"Writing nb reads per CAS pattern in {filename}")
+        with open(filename, 'w') as f:
+            f.write(s)
+
+    def _find_IS_around(self):
+        genes_cas = {}
+        with open(pathlib.Path('data') / 'fastas' / 'cas_genes.fasta') as f:
+            txt = f.read()
+        for k in txt.split('>')[1:]:
+            genes_cas[k.split('\n')[0]] = k.split('\n')[1]
+        dico_IS = {}
+        with open(pathlib.Path('data') / 'fastas' / 'IS6110.fasta') as f:
+            txt = f.read()
+        for k in txt.split('>')[1:]:
+            dico_IS[k.split('\n')[0]] = k.split('\n')[1]
+        with open(pathlib.Path('data') / 'fastas' / 'CASs.fasta', 'w') as f:
+            for k in genes_cas:
+                cpt, mot = 0, 50
+                for l in range(0, len(genes_cas[k]), mot):
+                    if len(genes_cas[k][l:]) >= mot / 2:
+                        f.write(f">{k + str(cpt)}\n{genes_cas[k][l:l + mot]}\n")
+                        cpt += 1
+                for l in range(mot // 2, len(genes_cas[k]), mot):
+                    if len(genes_cas[k][l:]) >= mot / 2:
+                        f.write(f">{k + str(cpt)}\n{genes_cas[k][l:l + mot]}\n")
+                        cpt += 1
+
+        completed = sp.run([self._blastn,
+                            '-num_threads', self._num_threads,
+                            '-query', pathlib.Path('data') / 'fastas' / 'CASs.fasta',
+                            '-evalue', self._evalue,
+                            '-task', "blastn",
+                            '-db', self._sra / self._sra.name,
+                            '-outfmt', '10 sseqid sstart send',
+                            '-out', self._sra / (self._sra.name + '_cas')])
+        assert completed.returncode == 0
+
+        seqs = {}
+        with open( self._sra / (self._sra.name + '_cas'), 'r') as f:
+            for u in f.read().split('\n')[:-1]:
+                nom, deb, fin = u.split(',')
+                deb, fin = eval(deb), eval(fin)
+                seqs[nom] = deb < fin
+
+        fasta_sequences = {}
+        SEQS = []
+        fasta_sequences = Bio.SeqIO.parse(self._sra_shuffled, 'fasta')
+        for fasta in fasta_sequences:
+            if fasta.id in seqs:
+                if seqs[fasta.id]:
+                    SEQS.append(str(fasta.seq))
+                else:
+                    SEQS.append(rev_comp(str(fasta.seq)))
+
+        is_autour = {}
+        txt = ''
+        for k in SEQS:
+            for l in dico_IS:
+                debut = dico_IS[l][:15]
+                if debut in k:
+                    prefixe = k.split(debut)[0]
+                    for m in genes_cas:
+                        if prefixe in genes_cas[m]:
+                            desc = f"{m}[:{genes_cas[m].find(prefixe) + len(prefixe)}]+{l}"
+                            if desc not in is_autour:
+                                is_autour[desc] = 1
+                            else:
+                                is_autour[desc] += 1
+                fin = dico_IS[l][-15:]
+                if fin in k:
+                    suffixe = k.split(fin)[1]
+                    for m in genes_cas:
+                        if suffixe in genes_cas[m]:
+                            desc = f"{l}+{m}[{genes_cas[m].find(suffixe) + len(suffixe)}:]"
+                            if desc not in is_autour:
+                                is_autour[desc] = 1
+                            else:
+                                is_autour[desc] += 1
+        filename = self._sra / (self._sra.name + '.is_around')
+        print(f"Writing ISs around the locus in {filename}")
+        with open(filename, 'w') as f:
+            f.write(os.linesep.join([f"{k:<40} : {is_autour[k]:>10} times" for k in is_autour]))
+
 
 if __name__ == '__main__':
     cb = CRISPRbuilder()
