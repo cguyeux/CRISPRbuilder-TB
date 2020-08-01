@@ -78,12 +78,17 @@ class CRISPRbuilder:
                             default=12,
                             help="spacer nucleotides required when looking reads with two pieces of spacers",
                             type=int)
+        parser.add_argument("-limit",
+                            default=3,
+                            help="minimal number of reads that contains two pieces of spacers",
+                            type=int)
         args = parser.parse_args()
         self._outdir = pathlib.Path(args.output_directory)
         self._sra = self._outdir / args.sra
         self._evalue = args.evalue
         self._num_threads = args.num_threads
         self._overlap = args.overlap
+        self._limit = args.limit
 
     def _make_blast_db(self):
         completed = sp.run([self._makeblastdb,
@@ -209,7 +214,7 @@ class CRISPRbuilder:
     def _find_duplicates(self):
         couples = []
         for k in self._SEQS:
-            for l in ['DR' + str(m) for m in range(0, 16)]:
+            for l in [m for m in self._dicofind if m.startswith('DR')]:
                 if self._dicofind[l] in k:
                     for i in range(k.count(self._dicofind[l])):
                         u, v = k.split(self._dicofind[l])[i], k.split(self._dicofind[l])[i + 1]
@@ -221,7 +226,7 @@ class CRISPRbuilder:
                                 V = m
                         couples.append((U, V))
             kk = rev_comp(k)
-            for l in ['DR' + str(m) for m in range(0, 16)]:
+            for l in [m for m in self._dicofind if m.startswith('DR')]:
                 if self._dicofind[l] in kk:
                     for i in range(kk.count(self._dicofind[l])):
                         u, v = kk.split(self._dicofind[l])[i], kk.split(self._dicofind[l])[i + 1]
@@ -232,10 +237,9 @@ class CRISPRbuilder:
                             if v[:self._overlap] == self._dicofind[m][:self._overlap]:
                                 V = m
                         couples.append((U, V))
-        limite = 3
         txt = ''
         for k in sorted([(u, couples.count(u)) for u in list(set(couples)) if
-                         couples.count(u) >= limite and '' not in u and 'pattern' not in ''.join(u)
+                         couples.count(u) >= self._limit and '' not in u and 'pattern' not in ''.join(u)
                          and 'IS' not in ''.join(u)],
                         key=lambda x: eval(x[0][0].replace('esp', '').split('(')[0])):
             if eval(k[0][1].replace('esp', '').replace('rev(', '').split('(')[0].split(')')[0]) != eval(
@@ -247,7 +251,7 @@ class CRISPRbuilder:
             f.write(txt)
         txt = ''
         for k in sorted([(u, couples.count(u)) for u in list(set(couples)) if
-                couples.count(u) >= limite and '' not in u and 'pattern' not in ''.join(u)
+                couples.count(u) >= self._limit and '' not in u and 'pattern' not in ''.join(u)
                          and 'IS' not in ''.join(u)],
                key=lambda x: eval(x[0][0].replace('esp', '').split('(')[0])):
             txt += f"{k[0][0].split('(')[0]}-{k[0][1].split('(')[0]}: {k[1]}" + os.linesep
@@ -255,30 +259,6 @@ class CRISPRbuilder:
         print(f"Writing reads number with two spacers in {filename}")
         with open(filename, 'w') as f:
             f.write(txt)
-
-    def _get_matches(self):
-        self._dicofind, self._dico_cas = {}, {}
-        with open(pathlib.Path('data') / 'fastas' / 'crispr_patterns.fasta') as f:
-            txt = f.read()
-        for k in txt.split('>')[1:]:
-            self._dicofind[k.split('\n')[0]] = k.split('\n')[1]
-        '''with open(pathlib.Path('data') / 'fastas' / 'cas_patterns.fasta') as f:
-            txt = f.read()
-        for k in txt.split('>')[1:]:
-            self._dico_cas[k.split('\n')[0]] = k.split('\n')[1]'''
-        '''S = []
-        for k in self._SEQS:
-            s = copy.deepcopy(k)
-            for l in self._dicofind:
-                s = s.replace(self._dicofind[l], '*' + l + '*')
-            for l in self._dico_cas:
-                s = s.replace(self._dico_cas[l], '*' + l + '*')
-            s = s.replace('**', '*')
-            s = s.replace('*GTCGTCAGACCCAAAACCC*', '*rDRa1*')
-            s = s.replace('*CCCCGAGAGGGGACGGAAAC*', '*DRb1*')
-            s = s.replace('*AAAACCCCGAGAGGGGACGGAAAC*', '*DRb2*')
-            if '*' in s:
-                S.append(s.split('*')[1:-1])'''
 
     def _cas_investigation(self):
         self._dico_cas = {}
