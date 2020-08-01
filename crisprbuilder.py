@@ -38,7 +38,8 @@ class CRISPRbuilder:
         self._logger.info(f'Preparing {self._sra.name} sequences')
         self._sra_shuffled = prepare_sra(self._sra)
         self._coverage, self._len_reads, self._nb_reads = seq_info(self._sra)
-        self._make_blast_db()
+        if not any([p.suffix == '.nin' for p in self._sra.iterdir()]):
+            self._make_blast_db()
 
     def __str2bool(self, v):
         if isinstance(v, bool):
@@ -262,12 +263,24 @@ class CRISPRbuilder:
                                 V = m
                         couples.append((U, V))
         limite = 3
+        txt = ''
         for k in sorted([(u, couples.count(u)) for u in list(set(couples)) if
-                         couples.count(u) >= limite and '' not in u and 'pattern' not in ''.join(u)],
+                         couples.count(u) >= limite and '' not in u and 'pattern' not in ''.join(u)
+                         and 'IS' not in ''.join(u)],
                         key=lambda x: eval(x[0][0].replace('esp', '').split('(')[0])):
             if eval(k[0][1].replace('esp', '').replace('rev(', '').split('(')[0].split(')')[0]) != eval(
                     k[0][0].replace('esp', '').replace('rev(', '').split('(')[0].split(')')[0]) + 1:
-                print(k)
+                txt += f"{k[0][0].split('(')[0]}-{k[0][1].split('(')[0]}: {k[1]}" + os.linesep
+        with open(self._sra / (self._sra.name + '.not_consecutive'), 'w') as f:
+            f.write(txt)
+        txt = ''
+        for k in sorted([(u, couples.count(u)) for u in list(set(couples)) if
+                couples.count(u) >= limite and '' not in u and 'pattern' not in ''.join(u)
+                         and 'IS' not in ''.join(u)],
+               key=lambda x: eval(x[0][0].replace('esp', '').split('(')[0])):
+            txt += f"{k[0][0].split('(')[0]}-{k[0][1].split('(')[0]}: {k[1]}" + os.linesep
+        with open(self._sra / (self._sra.name + '.reads_with_2_spacers'), 'w') as f:
+            f.write(txt)
 
     def _get_contigs2(self, sensibility=20):
         liste = [u for u in [[k[l:l + self._taille_tuple]
