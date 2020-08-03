@@ -123,6 +123,11 @@ It is not rare that the produced results are too chaotic, to make it possible to
 these parameters have been experimentally set at assumed values.
 
 
+## Last comment
+
+If you find new DR or spacer variant, or a new spacer related to *tuberculosis*, please send them with the SRA accession number for **CRISPRbuilder-TB** integration, to: *christophe* dot *guyeux* at *univ* minus *fcomte* dot *fr*.
+
+
 ## Citation
 
 >Christophe Guyeux, Christophe Sola, Guislaine Refrégier. CRISPRbuilder-TB: “CRISPR-Builder for tuberculosis”. Exhaustive reconstruction of the CRISPR locus in Mycobacterium tuberculosis complex using SRA. Submitted article (2020).
