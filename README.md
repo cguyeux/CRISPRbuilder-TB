@@ -58,14 +58,7 @@ python crisprbuilder.py -h
 </pre>
 
 
-## Produced results
-
-- A file with ".contig" is written in the SRA directory, which contains all 
-obtained contigs ordered by scores. In the best case scenario, only the 2-3 first
-lines are needed to reconstruct the CRISPR locus.
-
-
-## Deeper explanations
+## Illustrative example
 
 Here are the first contigs produced in the cas of a BCG strain:
 <pre>
@@ -112,6 +105,23 @@ SIT : 482
 
 In [3]:
 </pre>
+
+## Deeper explanations
+
+In total, 6 files are created, which can be used to manually determine the locus constitution. They are detailed below, according to their suffix:
+- .contig: as previously explained, contigs of the CRISPR locus;
+- .not_consecutive and .reads_with_2_spacers: the number of reads that contain the end of spacer k, followed by a DR, followed by the beginning of spacer l (in .not_consecutive, l is not k+1); 
+- .cas_locus: a tentative reconstruction of the Cas locus, based on the blast of beginning and end of Cas genes, plus part of such genes followed by a beginning (or end) of IS6110, based on a short list of known events;
+- .cas_reads: number of reads for each event of the list used in .cas_locus;
+- .is_around: investigation of possibly unknown IS6110 in the flanking regions of the CRISPR locus.
+
+It is not rare that the produced results are too chaotic, to make it possible to proper reconstruct manually the locus. This may be due to a too short read length, to contamination, or to a bad quality of the reads. However, files above depend on the following parameters, whose modification may sometimes help to decipher the locus content:
+- evalue: evalue when blasting spacers, DRs, etc.;
+- kmer_size: kmer size in the reads decomposition (if 0: 4/5 of the reads length);
+- overlap: spacer nucleotides required when looking reads with two pieces of spacers;
+- limit: minimal number of reads that contains two pieces of spacers;
+these parameters have been experimentally set at assumed values.
+
 
 ## Citation
 

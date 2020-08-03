@@ -74,6 +74,10 @@ class CRISPRbuilder:
                             default='1e-7',
                             help="evalue when blasting spacers, DRs, etc.",
                             type=str)
+        parser.add_argument("-kmer_size",
+                            default=0,
+                            help="kmer size (if 0, 4/5 of the reads length)",
+                            type=int)
         parser.add_argument("-overlap",
                             default=12,
                             help="spacer nucleotides required when looking reads with two pieces of spacers",
@@ -89,6 +93,7 @@ class CRISPRbuilder:
         self._num_threads = args.num_threads
         self._overlap = args.overlap
         self._limit = args.limit
+        self._kmer_size = args.kmer_size
 
     def _make_blast_db(self):
         completed = sp.run([self._makeblastdb,
@@ -113,7 +118,9 @@ class CRISPRbuilder:
             txt = f.read()
         for k in txt.split('>')[1:]:
             self._dicofind[k.split('\n')[0]] = k.split('\n')[1]
-        kmers = int(4 * self._len_reads / 5)
+        kmers = self._kmer_size
+        if kmers == 0:
+            kmers = int(4 * self._len_reads / 5)
         print('Read length:', self._len_reads)
         print('k-mers length:', kmers)
         sequences = []
@@ -351,7 +358,6 @@ class CRISPRbuilder:
                 deb, fin = eval(deb), eval(fin)
                 seqs[nom] = deb < fin
 
-        fasta_sequences = {}
         SEQS = []
         fasta_sequences = Bio.SeqIO.parse(self._sra_shuffled, 'fasta')
         for fasta in fasta_sequences:
