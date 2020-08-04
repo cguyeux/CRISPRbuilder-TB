@@ -58,7 +58,9 @@ python crisprbuilder.py -h
 </pre>
 
 
-## Illustrative example
+## Illustrative examples
+
+### A first easy example
 
 Here are the first contigs produced in the cas of a BCG strain:
 <pre>
@@ -105,6 +107,74 @@ SIT : 482
 
 In [3]:
 </pre>
+
+### A more difficult one
+
+The case of ERR028615 is more complicated, as the contigs are multiple:
+
+<pre>
+('CAGATCTGACGGAAAC*esp65*DR0*esp66*DR4*esp67*DR5*esp68*DR0*ending_pattern1*ending_pattern2*ending_pattern3[:29]', 5269)
+('esp45[12:17]*DR0*esp53*DR0*esp62*DR0*esp63*DR0*esp64*DR6*esp65*DR0[:20]', 4347)
+('esp28[31:]*DR0*esp29*DR0*esp38*DR0*esp39*DR0*esp40[:9]', 2576)
+('esp24[30:]*DR0*esp25*DRb2*esp26*DR0*esp27*DR0*esp28[:19]', 2454)
+('esp2[28:]*DR0*esp3*DR0*esp4*DR0*esp12*DR0[:24]', 2691)
+('TGCGTGTTCAA*DR0*esp51*DR0*esp52*DR0*esp53[:20]', 1587)
+('esp40[20:]*DR0*esp41*DR0*esp35*DR0*esp42[:21]', 1600)
+('GGTTCTTTTGA*starting_pattern1*DR0*esp1*DR0*esp2[:9]', 1940)
+('GGGAAAC*esp22*DR0*esp23*DR0*esp24[:18]', 1207)
+('G*DR0*esp21*DR0*esp22*DR0[:20]', 1125)
+('esp23[31:]*DR0*esp24*DR0*esp25[:16]', 715)
+('TGATGACTCCG*DR0*esp28*DR0*esp29[:8]', 837)
+('esp1[30:]*DR0*esp2*DR0*esp3[:13]', 882)
+('esp14[30:]*DR0*esp15*DR0*esp18[:11]', 840)
+('GACCCTGTCA*DR0*esp42*DR0*ATTT', 884)
+('esp13[21:]*DR0*esp14*DR0*esp15[:9]', 893)
+('esp12[25:]*DR0*esp13*DR0*esp14[:12]', 722)
+('esp18[28:]*DR0*esp19*DR0*esp20[:14]', 712)
+('TGC*DR0*esp40*DR0*esp41[:9]', 630)
+('esp19[21:]*DR0*esp20*DR0*esp21[:9]', 577)
+('DRb1*esp18*DR0*ACTCG', 240)
+('ACAGTTACGTTCTACGGAAGGGGACG*Rv2816c*starting_pattern1*DR0[:8]', 965)
+('CAGATCTGAAC*esp12*DR0*esp13[:11]', 305)
+('ATGA*ending_pattern3*Rv2813c*TGCGGGTGGTGGATTCCAGATCT', 443)
+('esp15[28:]*DR0*esp18*GTCG', 165)
+('GCGGGTACCTCCTCGATGAACCACCTGACATGACCCCATCCTTTCC*finIS6110c*GA', 355)
+('AACCACCTGACATGACCCCATCCTTTCC*finIS6110c*GATCGGTCATATCAAGTTTTGTCAGGAATGCGGGATTCGAAT', 452)
+('CAGATCTGGGAAAC*esp22*rDRa1', 14)
+('DR0[25:]*esp38*GTCGTCAGACCCAAAACAGATCT', 10)
+('ending_pattern1[35:]*ending_pattern2*CCCCGCAGATCT', 10)
+('esp15[13:]*DR0*GCGCAGATCT', 12)
+('esp27[9:]*DR0*AGATCT', 10)
+('CAGATCTGCT*DR0*esp63[:27]', 14)
+('CAGATCTGTTCAGCCT*DR0*esp15[:22]', 24)
+('CAGATCTGAACCCCGAGAGGGGACGGAAAC*esp13*DR0[:8]', 21)
+('CAGATCTGGACATGACCCCATCCTTTCC*finIS6110c*GATCGGTCAT', 16)
+('DR0[18:]*esp15*GTCGTCAGATCT', 9)
+('DR0[15:]*esp38*GTCGTCACAGATCT', 12)
+('CAGATCTGTCCTCCCA*DR5*esp68[:22]', 24)
+('CAGATCTGCTTAG*DR0*esp14[:23]', 11)
+('esp22[16:]*DR0*TTCGCAGATCT', 12)
+('CAGATCTGGGACGGAAAC*esp62*DR0[:16]', 12)
+('esp64[28:]*DR6*TGGACGCAGAATCGCACCGGCAGATCT', 12)
+('CAGATCTGCCACCTGACATGACCCCATCCTTTCC*finIS6110c*GA', 24)
+...
+</pre>
+
+However, a carefull study of the latter shows that all patterns overlap, except between spacers 42 and 51. And this problematic situation can be solved thanks to the other outputted files, leading to :
+
+<pre>
+CRISPR:
+*Rv2816c*starting_pattern1*DR0*esp1*DR0*esp2*DR0*esp3*DR0*esp4*DR0*esp12*DR0*esp13*DR0*
+esp14*DR0*esp15*DR0*esp18*DR0*esp19*DR0*esp20*DR0*esp21*DR0*esp22*DR0*esp23*DR0*
+esp24*DR0*esp25*DRb2*esp26*DR0*esp27*DR0*esp28*DR0*esp29*DR0*esp38*DR0*esp39*DR0*
+esp40*DR0*esp41*DR0*esp35*DR0*esp42*DR0*esp51*DR0*esp52*DR0*esp53*DR0*esp62*DR0*
+esp63*DR0*esp64*DR6*esp65*DR0*esp66*DR4*esp67*DR5*esp68*DR0*ending_pattern*Rv2813c*
+
+CAS:
+Cas6-Csm1-Csm2-Csm3-Csm4-Csm5-Csm6-Cas1-Cas2-pattern_start*DR0
+end_pattern-Rv2812c-Rv2811c-Rv2809c-Rv2808c-Rv2807c
+</pre>
+
 
 ## Deeper explanations
 
