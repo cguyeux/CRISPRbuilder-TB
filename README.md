@@ -40,6 +40,8 @@ To install the required python libraries:
 pip3 install -r requirements.txt
 </pre>
 
+You can try to replace pip3 by pip, if the command does not succeed. And you may
+add the --user option in case where you don't have the root privilege.
 
 ## How to use TB-tools
 
