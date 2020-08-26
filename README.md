@@ -29,8 +29,8 @@ a clean installation from the source.
 
 ## Installation
 
-You can either download a zip file by clicking on the 'Clone or download' green
-button, or clone the repository by writing in a terminal:
+You can either download a zip file by clicking on the 'Code' green
+button (Windows), or clone the repository by writing in a terminal:
 <pre>
 git clone https://github.com/cguyeux/CRISPRbuilder-TB.git
 </pre>
@@ -41,9 +41,13 @@ pip3 install -r requirements.txt
 </pre>
 
 You can try to replace pip3 by pip, if the command does not succeed. And you may
-add the --user option in case where you don't have the root privilege.
+add the --user option in case where you don't have the root privilege: 
 
-## How to use TB-tools
+<pre>
+pip install --user -r requirements.txt
+</pre>
+
+## How to use CRISPRbuilder-TB
 
 To launch a first analysis: 
 <pre>
