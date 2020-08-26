@@ -32,7 +32,7 @@ a clean installation from the source.
 You can either download a zip file by clicking on the 'Clone or download' green
 button, or clone the repository by writing in a terminal:
 <pre>
-git clone https://github.com/cguyeux/TB-tools.git
+git clone https://github.com/cguyeux/CRISPRbuilder-TB.git
 </pre>
 
 To install the required python libraries: 
