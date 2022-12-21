@@ -115,6 +115,8 @@ def seq_info(sra):
         with open(sra_shuffled) as f:
             nb_reads = f.read().count('>')
     # Getting read length
+    print(sra_shuffled)
+    print(open(sra_shuffled))
     head_seq = open(sra_shuffled).read(10000).split('>')[1]
     len_reads = len(''.join(head_seq.splitlines()[1:]))
     # Getting reads coverture
